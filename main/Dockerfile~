@@ -1,9 +1,0 @@
-FROM jjanzic/docker-python3-opencv
-# FROM python:3
-
-COPY ./ .
-
-RUN pip install websockets
-RUN pip install matplotlib
-
-CMD [ "python", "-u", "./main.py" ]

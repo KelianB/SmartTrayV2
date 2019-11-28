@@ -4,10 +4,8 @@ FROM jjanzic/docker-python3-opencv
 COPY ./main/ .
 COPY ./utils/ .
 
+EXPOSE 5000
 
 RUN pip install websockets
-RUN pip install matplotlib
-
-ENV DISPLAY=$DISPLAY
 
 CMD [ "python", "-u", "./main.py" ]

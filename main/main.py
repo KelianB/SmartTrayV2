@@ -2,15 +2,14 @@ import asyncio
 import websockets
 import json
 import utils
-from datetime import datetime
-import matplotlib.pyplot as plt
+from time import time
 import base64
 import cv2
 import numpy as np
 
 ### SmartTray ###
 
-## Authors 
+## Authors
 # Angela Hoyos, Lizeth Bernal, Philippe Rateau, Mathilde Verlyck, Minh Tri Truong, Kelian Baert
 ## Description
 # This is the main module of our Food Recognition AI system "SmartTray".
@@ -23,44 +22,65 @@ cameraWs = None
 mlWs = None
 infoWs = None
 
+frontWs = None
+isMLWorking = False
+
+cameraConnectionTime = 0
+
 async def wsConnect(URI, onConnection, onMessageReceived):
     print("Connecting to", URI, "...")
-    
-    async def listen(websocket):
-        response = await websocket.recv()   
-        msg = json.loads(response)
-        await onMessageReceived(websocket, msg["head"], msg["body"])
-        await listen(websocket)    
-    
-    async with websockets.connect(URI, max_size=1e10) as websocket:
-        await onConnection(websocket)
-        await utils.wsSend(websocket, "start")
-        await listen(websocket)
+
+    try:
+        async with websockets.connect(URI, max_size=1e10, max_queue=None, read_limit=1e14, write_limit=1e14) as websocket:
+            await onConnection(websocket)
+            await utils.wsSend(websocket, "start")
+
+            while True:
+                try:
+                    response = await websocket.recv()
+                    msg = json.loads(response)
+                    await onMessageReceived(websocket, msg["head"], msg["body"])
+                except Exception as e:
+                    print("Connection with", URI, "threw an error:", e)
+                """
+                except websockets.exceptions.ConnectionClosed:
+                    print("Connection with", URI, "was closed")
+                    break
+                """
+    except Exception as e:
+        print("Connection with " + URI + " threw an exception:", e);
+
 
 async def onReceptionFromCamera(ws, head, body):
-    global mlWs
+    global mlWs, isMLWorking, cameraConnectionTime
     print("[MAIN < CAMERA]", head)
-    
+
     if head == "started":
-        await utils.wsSend(ws, "takepicture")        
+        pass
     elif head == "imageBase64":
-        testShowImg(imageFromBase64(body))
-        await utils.wsSend(mlWs, "imageBase64", body)
-                    
+        latency = time() - body["time"]
+        print("latency", latency, "(connected since", time() - cameraConnectionTime, ")")
+
+        await sendImageToFront(body["data"])
+        if not isMLWorking:
+            isMLWorking = True
+            #await utils.wsSend(mlWs, "imageBase64", body["data"])
+
+
 async def onReceptionFromML(ws, head, body):
+    global frontWs, isMLWorking
     print("[MAIN < ML]", head)
-    
+
     if head == "image-items":
-        itemNames = []
-        for i in body:
-            itemNames.append(i["label"])        
-        print(body)
-        
+        isMLWorking = False
+        if frontWs != None:
+            await utils.wsSend(frontWs, "labels", body)
+
         # TODO send get-info to info service with the name of the item
 
 async def onReceptionFromInfo(ws, head, body):
     print("[MAIN < INFO]", head)
-    
+
     if head == "db-ready":
         # Test
         pass
@@ -68,14 +88,16 @@ async def onReceptionFromInfo(ws, head, body):
     if head == "info":
         # TODO do something with info
         print(body)
-    
-    
+
+
 async def onConnectionML(websocket):
     global mlWs
     mlWs = websocket
 
 async def onConnectionCamera(websocket):
     global cameraWs
+    global cameraConnectionTime
+    cameraConnectionTime = time()
     cameraWs = websocket
 
 async def onConnectionInfo(websocket):
@@ -83,35 +105,51 @@ async def onConnectionInfo(websocket):
     infoWs = websocket
     await utils.wsSend(infoWs, "init-db")
 
-     
+def startWsServer(port, onMessageReceived, onConnectionClosed=None):
+    async def listen(websocket, path):
+        try:
+            while True:
+                response = await websocket.recv()
+                msg = json.loads(response)
+                await onMessageReceived(websocket, msg["head"], msg["body"])
+        except Exception as e:
+            print("WebSocket connection was closed:", e)
+            if onConnectionClosed is not None:
+                onConnectionClosed(e);
+
+    asyncio.ensure_future(websockets.serve(listen, "", port, max_size=1e10))
+
+
 # Initialize our system and its modules
 def init():
-    asyncio.ensure_future(wsConnect(ML_WS_URI, onConnectionML, onReceptionFromML)) 
+    asyncio.ensure_future(wsConnect(ML_WS_URI, onConnectionML, onReceptionFromML))
     asyncio.ensure_future(wsConnect(CAMERA_WS_URI, onConnectionCamera, onReceptionFromCamera))
-    asyncio.ensure_future(wsConnect(INFO_WS_URI, onConnectionInfo, onReceptionFromInfo))    
+    asyncio.ensure_future(wsConnect(INFO_WS_URI, onConnectionInfo, onReceptionFromInfo))
+    startWsServer(5000, onReceptionFromFront, onConnectionToFrontClosed)
     asyncio.get_event_loop().run_forever()
-            
+
+
 def imageFromBase64(encoded):
     decoded = base64.b64decode(encoded)
     return cv2.imdecode(np.fromstring(decoded, dtype=np.uint8), -1)
 
 
+def onConnectionToFrontClosed(e):
+    global frontWs
+    frontWs = None
+
 # Displays an image and the given items (with label & boxes)
-def testShowImg(img):
-    print("show image")
-    width, height = img.shape[1], img.shape[0]
-    
-    plt.imshow(img, cmap = 'gray', interpolation = 'bicubic')
-    plt.show()
-    
-    # Create the window
-    """cv2.namedWindow("image", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("image", width, height)
-    # Display the image
-    cv2.imshow("image", img)    
-    # Wait for keypress
-    cv2.waitKey()
-    cv2.destroyWindow("image")
-    """
+async def sendImageToFront(encodedImage):
+    global frontWs
+    if frontWs != None:
+        await utils.wsSend(frontWs, "image-base64", encodedImage)
+
+async def onReceptionFromFront(ws, head, body):
+    global frontWs
+    print("[FRONT > MAIN]", head)
+    if head == "handshake":
+        frontWs = ws
+
+
 
 init()
