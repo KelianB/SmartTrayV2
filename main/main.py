@@ -4,7 +4,7 @@ import json
 import utils
 from time import time
 import base64
-import cv2
+from cv2 import imdecode
 import numpy as np
 
 ### SmartTray ###
@@ -21,12 +21,15 @@ INFO_WS_URI = "ws://info:5003"
 cameraWs = None
 mlWs = None
 infoWs = None
-
 frontWs = None
-isMLWorking = False
 
+isMLWorking = False
 cameraConnectionTime = 0
 
+# Port used for connecting and exchanging messages with the front-end
+FRONT_MESSAGING_PORT = 5000
+
+# Connects to a websocket server at the given location
 async def wsConnect(URI, onConnection, onMessageReceived):
     print("Connecting to", URI, "...")
 
@@ -42,31 +45,32 @@ async def wsConnect(URI, onConnection, onMessageReceived):
                     await onMessageReceived(websocket, msg["head"], msg["body"])
                 except Exception as e:
                     print("Connection with", URI, "threw an error:", e)
-                """
-                except websockets.exceptions.ConnectionClosed:
-                    print("Connection with", URI, "was closed")
-                    break
-                """
+                #except websockets.exceptions.ConnectionClosed:
+                #    print("Connection with", URI, "was closed")
+                #    break
     except Exception as e:
         print("Connection with " + URI + " threw an exception:", e);
 
-
+# Called when receiving a message from the camera module
 async def onReceptionFromCamera(ws, head, body):
     global mlWs, isMLWorking, cameraConnectionTime
     print("[MAIN < CAMERA]", head)
 
-    if head == "started":
+    if head == "start-success":
         pass
-    elif head == "imageBase64":
+    if head == "start-failure":
+        # TODO Inform the front so it can display an error
+        pass
+    elif head == "image-base64":
         latency = time() - body["time"]
         print("latency", latency, "(connected since", time() - cameraConnectionTime, ")")
 
         await sendImageToFront(body["data"])
         if not isMLWorking:
             isMLWorking = True
-            #await utils.wsSend(mlWs, "imageBase64", body["data"])
+            await utils.wsSend(mlWs, "image-base64", body["data"])
 
-
+# Called when receiving a message from the machine learning module
 async def onReceptionFromML(ws, head, body):
     global frontWs, isMLWorking
     print("[MAIN < ML]", head)
@@ -75,81 +79,61 @@ async def onReceptionFromML(ws, head, body):
         isMLWorking = False
         if frontWs != None:
             await utils.wsSend(frontWs, "labels", body)
+        # TODO send get-info to info service with the name of the items
 
-        # TODO send get-info to info service with the name of the item
-
+# Called when receiving a message from the info module
 async def onReceptionFromInfo(ws, head, body):
     print("[MAIN < INFO]", head)
 
     if head == "db-ready":
-        # Test
         pass
+        # Test
         #await utils.wsSend(ws, "get-info", ["Veau", "Lapin", "Farine"])
     if head == "info":
         # TODO do something with info
         print(body)
 
-
+# Called when we have successfully connected to the machine learning module
 async def onConnectionML(websocket):
     global mlWs
     mlWs = websocket
 
+# Called when we have successfully connected to the camera module
 async def onConnectionCamera(websocket):
     global cameraWs
     global cameraConnectionTime
     cameraConnectionTime = time()
     cameraWs = websocket
 
+# Called when we have successfully connected to the info module
 async def onConnectionInfo(websocket):
     global infoWs
     infoWs = websocket
     await utils.wsSend(infoWs, "init-db")
-
-def startWsServer(port, onMessageReceived, onConnectionClosed=None):
-    async def listen(websocket, path):
-        try:
-            while True:
-                response = await websocket.recv()
-                msg = json.loads(response)
-                await onMessageReceived(websocket, msg["head"], msg["body"])
-        except Exception as e:
-            print("WebSocket connection was closed:", e)
-            if onConnectionClosed is not None:
-                onConnectionClosed(e);
-
-    asyncio.ensure_future(websockets.serve(listen, "", port, max_size=1e10))
-
 
 # Initialize our system and its modules
 def init():
     asyncio.ensure_future(wsConnect(ML_WS_URI, onConnectionML, onReceptionFromML))
     asyncio.ensure_future(wsConnect(CAMERA_WS_URI, onConnectionCamera, onReceptionFromCamera))
     asyncio.ensure_future(wsConnect(INFO_WS_URI, onConnectionInfo, onReceptionFromInfo))
-    startWsServer(5000, onReceptionFromFront, onConnectionToFrontClosed)
+    utils.startWsServer(FRONT_MESSAGING_PORT, onReceptionFromFront, onConnectionToFrontClosed)
     asyncio.get_event_loop().run_forever()
 
-
-def imageFromBase64(encoded):
-    decoded = base64.b64decode(encoded)
-    return cv2.imdecode(np.fromstring(decoded, dtype=np.uint8), -1)
-
-
-def onConnectionToFrontClosed(e):
-    global frontWs
-    frontWs = None
-
-# Displays an image and the given items (with label & boxes)
+# Sends an encoded image to the front
 async def sendImageToFront(encodedImage):
-    global frontWs
     if frontWs != None:
         await utils.wsSend(frontWs, "image-base64", encodedImage)
 
+# Called when receiving a message from the front-end
 async def onReceptionFromFront(ws, head, body):
     global frontWs
     print("[FRONT > MAIN]", head)
     if head == "handshake":
         frontWs = ws
 
-
+# Called when the connection with the front has been closed
+def onConnectionToFrontClosed(e):
+    global frontWs
+    frontWs = None
 
 init()

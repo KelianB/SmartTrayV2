@@ -1,7 +1,7 @@
 version: "3"
 services:
   main:
-    build: 
+    build:
         context: .
         dockerfile: ./main/Dockerfile
     ports:
@@ -12,11 +12,9 @@ services:
     - "info"
     networks:
     - nw
-    volumes:
-    - /tmp/.X11-unix:/tmp/.X11-unix 
 
   camera:
-    build: 
+    build:
         context: .
         dockerfile: ./camera/Dockerfile
     ports:
@@ -25,7 +23,7 @@ services:
     - nw
 
   ml:
-    build: 
+    build:
         context: .
         dockerfile: ./ml/Dockerfile
     ports:
@@ -34,7 +32,7 @@ services:
     - nw
 
   info:
-    build: 
+    build:
         context: .
         dockerfile: ./info/Dockerfile
     ports:
@@ -49,11 +47,8 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: "db"
-      # So you don't have to use root, but you can if you like
       MYSQL_USER: "user"
-      # You can use whatever password you like
       MYSQL_PASSWORD: "Jamaica1"
-      # Password for root access
       MYSQL_ROOT_PASSWORD: "Jamaica1"
     ports:
     - "3306:3306"
@@ -61,8 +56,7 @@ services:
     - "3306"
     networks:
     - nw
-    # Where our data will be persisted
-    volumes:
+    volumes: # Where our data will be persisted
       - infodb:/var/lib/mysql
 
 # Names our volume

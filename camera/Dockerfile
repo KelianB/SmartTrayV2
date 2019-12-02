@@ -1,9 +1,8 @@
 FROM jjanzic/docker-python3-opencv
 
-COPY ./camera/camera.py .
-COPY ./camera/videocaptureasync.py .
+COPY ./camera/ .
 COPY ./utils/ .
 
-RUN pip install websockets
+RUN pip install -r ./requirements.txt
 
-CMD [ "python", "-u", "./camera.py" ]
+CMD ["python", "-u", "./camera.py"]

@@ -4,8 +4,8 @@ FROM jjanzic/docker-python3-opencv
 COPY ./main/ .
 COPY ./utils/ .
 
+RUN pip install -r ./requirements.txt
+
 EXPOSE 5000
 
-RUN pip install websockets
-
-CMD [ "python", "-u", "./main.py" ]
+CMD ["python", "-u", "./main.py"]

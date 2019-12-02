@@ -1,4 +1,4 @@
-let socket = new WebSocket("ws://172.19.0.6:5000");
+let socket = new WebSocket("ws://172.18.0.6:5000");
 
 let canvas = document.getElementById("test");
 canvas.width = window.innerWidth;
@@ -15,8 +15,7 @@ function wsSend(head, body) {
 
 let camImg = new Image();
 camImg.onload = function() {
-  imgScale = canvas.height / camImg.height;
-  imgScale = 1;
+  imgScale = Math.max(canvas.width / camImg.width, canvas.height / camImg.height);
   let w = camImg.width * imgScale;
   ctx.drawImage(camImg, 0, 0, camImg.width * imgScale, camImg.height * imgScale); // Or at whatever offset you like
   redrawLabels();

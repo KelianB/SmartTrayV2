@@ -4,10 +4,14 @@ import json
 import utils
 import pymysql
 
-async def onReception(ws, head, body):      
-    print("[MAIN > INFO]", head)     
-    
-    if head == "init-db":  
+# Port used by this module to listen for messages
+LISTENING_PORT = 5003
+
+# Called when the info module receives a message from the main module
+async def onReception(ws, head, body):
+    print("[MAIN > INFO]", head)
+
+    if head == "init-db":
         db = connectToDB()
         addDataToDB(db)
         db.close()
@@ -15,7 +19,6 @@ async def onReception(ws, head, body):
     if head == "get-info":
         itemsInfo = getInfo(body)
         await utils.wsSend(ws, "info", itemsInfo)
-        
 
 def connectToDB():
     return pymysql.connect(
@@ -86,14 +89,15 @@ def addDataToDB(db):
     mycursor.close()
     db.commit()
 
+# Get data for the given items
 def getInfo(items):
     db = connectToDB()
-      
+
     mycursor = db.cursor()
     mycursor.execute("USE information;")
-    
+
     results = {}
-    
+
     for i in items:
         mycursor.execute("""SELECT ID, Name, Price, Energy, Proteins, Carbohydrates, Fats FROM info WHERE name = %s""", (i,))
         d = mycursor.fetchone()
@@ -106,12 +110,11 @@ def getInfo(items):
             "carbohydrates": d[5],
             "fats": d[6],
         }
-    
+
     db.commit()
     mycursor.close()
-    db.close() 
+    db.close()
     return results
 
-
-utils.startWsServer(5003, onReception)
-
+utils.startWsServer(LISTENING_PORT, onReception)
+asyncio.get_event_loop().run_forever()
