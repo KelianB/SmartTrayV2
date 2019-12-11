@@ -10,7 +10,9 @@ ws = None
 started = False
 videoCapture = None
 # Location of the IP cam
-WEBCAM_URI = "http://192.168.43.247:8080/video"
+WEBCAM_URI = "http://192.168.43.127:8080/video"
+# Time before retrying to connect to the camera upon failure (seconds)
+CAMERA_CONNECTION_RETRY_TIME = 3.0
 # Maximum frames captured per second
 MAX_FPS = 30
 # Port used by this module to listen for messages
@@ -36,7 +38,13 @@ async def onCameraStartupSuccess():
     while True:
         t = time()
         img = capturePicture()
-        if img is not None:
+
+        if img is None:
+            # If we're not ready frames but we were already started, try to reconnect
+            if started:
+                await turnCameraOn(onCameraStartupSuccess, onCameraStartupFailure)
+                return
+        else:
             encodedImg = utils.imageToBase64(img)
             if encodedImg is not None:
                 computingDelay = time()-t
@@ -51,6 +59,9 @@ async def onCameraStartupSuccess():
 # Called when the camera couldn't be started or couldn't be reached
 async def onCameraStartupFailure():
     await utils.wsSend(ws, "start-failure")
+    # Retry later
+    await asyncio.sleep(CAMERA_CONNECTION_RETRY_TIME)
+    await turnCameraOn(onCameraStartupSuccess, onCameraStartupFailure)
 
 # Turns the camera on
 async def turnCameraOn(onSuccess=None, onFailure=None):
@@ -62,10 +73,9 @@ async def turnCameraOn(onSuccess=None, onFailure=None):
         if onSuccess is not None:
             await onSuccess()
     except cv2.error as e:
-        print("test", e)
+        print("CV2 Error upon connection with video source", e)
     except Exception as e:
-        print("Error while connecting to the video source:");
-        print(e)
+        print("Error while connecting to the video source.");
         if onFailure is not None:
             await onFailure()
 

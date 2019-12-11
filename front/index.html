@@ -3,15 +3,29 @@
   <head>
     <meta charset="utf-8">
     <title>SmartTray</title>
-
     <script
       src="https://code.jquery.com/jquery-3.4.1.min.js"
       integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
       crossorigin="anonymous"></script>
+    <script src="client.js"></script>
     <link rel="stylesheet" type="text/css" href="style.css"/>
   </head>
+
   <body>
-    <canvas id="test"></canvas>
-    <script src="client.js"></script>
+    <div id="container">
+      <div id="picture">
+        <canvas></canvas>
+      </div>
+
+      <div id="info">
+        <h1>SmartTray Information</h1>
+        <span>Detected items:</span>
+        <div id="items-info"></div>
+        <div>
+          <span>Total price:</span>&nbsp;<span id="total-price">0.00€</span>
+        </div>
+        <input id="button-pay" type="button" value="Pay">
+      </div>
+    </div>
   </body>
 </html>

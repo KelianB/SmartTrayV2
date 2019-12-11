@@ -24,7 +24,6 @@ infoWs = None
 frontWs = None
 
 isMLWorking = False
-cameraConnectionTime = 0
 
 # Port used for connecting and exchanging messages with the front-end
 FRONT_MESSAGING_PORT = 5000
@@ -53,8 +52,9 @@ async def wsConnect(URI, onConnection, onMessageReceived):
 
 # Called when receiving a message from the camera module
 async def onReceptionFromCamera(ws, head, body):
-    global mlWs, isMLWorking, cameraConnectionTime
-    print("[MAIN < CAMERA]", head)
+    global mlWs, isMLWorking
+    if head != "image-base64":
+        print("[MAIN < CAMERA]", head) # reduce console spam
 
     if head == "start-success":
         pass
@@ -62,8 +62,8 @@ async def onReceptionFromCamera(ws, head, body):
         # TODO Inform the front so it can display an error
         pass
     elif head == "image-base64":
-        latency = time() - body["time"]
-        print("latency", latency, "(connected since", time() - cameraConnectionTime, ")")
+        #latency = time() - body["time"]
+        #print("latency", latency)
 
         await sendImageToFront(body["data"])
         if not isMLWorking:
@@ -101,8 +101,6 @@ async def onConnectionML(websocket):
 # Called when we have successfully connected to the camera module
 async def onConnectionCamera(websocket):
     global cameraWs
-    global cameraConnectionTime
-    cameraConnectionTime = time()
     cameraWs = websocket
 
 # Called when we have successfully connected to the info module
@@ -132,7 +130,7 @@ async def onReceptionFromFront(ws, head, body):
         frontWs = ws
 
 # Called when the connection with the front has been closed
-def onConnectionToFrontClosed(e):
+def onConnectionToFrontClosed(e=None):
     global frontWs
     frontWs = None
 

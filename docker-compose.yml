@@ -11,7 +11,8 @@ services:
     - "ml"
     - "info"
     networks:
-    - nw
+      nw:
+        ipv4_address: 172.18.0.142
 
   camera:
     build:
@@ -64,5 +65,9 @@ volumes:
   infodb:
 
 networks:
-    nw:
-        driver: "bridge"
+  nw:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.18.0.0/24

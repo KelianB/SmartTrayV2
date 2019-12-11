@@ -51,7 +51,7 @@ def processImage(image):
         print("Cannot process image through the NN: YOLO is not initialized.")
         return
 
-    # Parameters to play with to see how the response changes
+    # model-specific parameter
     colorScale = 0.00392
 
     net = yolo["net"]
