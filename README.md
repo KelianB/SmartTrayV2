@@ -23,9 +23,8 @@ sudo docker-compose up
 ```
 This will start the server. You can then launch the app by opening front/index.html with your preferred browser.
 
-
-## Improvements
+## Future improvements
 - Retrain the model to recognize food specifically.
 - Add more feedback to the front for errors (e.g. when the server can't reach the camera).
 - Add more documentation regarding the expected WebSocket messages between containers.
-- While Yolo V2 seemed faster for this application, it would be worth studying the speed and accuracy difference between Yolo V2 and V3.
+- While Yolo V2 seemed faster for this application, it would be worth studying the speed and accuracy difference between Yolo V2 and V3 in more details.
