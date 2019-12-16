@@ -12,12 +12,17 @@ and put the file in the ml/yolo directory with the name "yolov2.weights".
 You will need docker installed in order to run the server.
 
 ## How to use
-Once Docker is installed, navigate to the root directory of this project and type:
+
+### Configuration
+By default, the camera is configured to capture images from a USB webcam. You can switch to an IP camera by changing one line in camera/camera.py.
+
+### Launching
+Once Docker is installed, navigate to the server directory and run the following command:
 ```
 sudo docker-compose up
 ```
-You can then open the app by launching the index file (in the "front" directory) with your preferred browser.
-By default, the camera is configured to capture images from a USB webcam. You can switch to an IP camera by changing one line in camera/camera.py.
+This will start the server. You can then launch the app by opening front/index.html with your preferred browser.
+
 
 ## Improvements
 - Retrain the model to recognize food specifically.
