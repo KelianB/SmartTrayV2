@@ -1,3 +1,0 @@
-websockets
-pymysql
-numpy
