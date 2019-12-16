@@ -14,3 +14,9 @@ This project was was made to work with Docker. Once Docker is installed, navigat
 sudo docker-compose up
 ```
 You can then open the app by launching the index file (in the "front" directory) with your preferred browser.
+
+By default, the camera is configured to capture images from a USB webcam. You can switch to an IP camera by changing one line in camera/camera.py.
+
+## Improvements
+- Add more feedback to the front for errors (e.g. when the server can't reach the camera)
+- Add more documentation for WebSockets between containers

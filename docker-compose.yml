@@ -22,6 +22,11 @@ services:
     - "5001:5001"
     networks:
     - nw
+    privileged: true
+    devices:
+    - /dev:/dev
+    volumes:
+    - /dev:/dev
 
   ml:
     build:

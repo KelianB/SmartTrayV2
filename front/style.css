@@ -80,6 +80,21 @@ input[type="button"] {
 	word-wrap: break-word;
 }
 
+#items-info i {
+  font-size: 14px;
+  font-style: normal;
+}
+
+#items-info > ul > li {
+  margin-bottom: 10px;
+}
+#items-info > ul > li > ul li {
+  margin: 6px 0;
+}
+#items-info > ul > li > ul {
+  padding-left: 25px;
+}
+
 #info span {
   font-weight: bold;
   font-size: 18px;

@@ -59,12 +59,11 @@ async def onReceptionFromCamera(ws, head, body):
     if head == "start-success":
         pass
     if head == "start-failure":
-        # TODO Inform the front so it can display an error
+        # Inform the front so it can display an error?
         pass
     elif head == "image-base64":
         #latency = time() - body["time"]
         #print("latency", latency)
-
         await sendImageToFront(body["data"])
         if not isMLWorking:
             isMLWorking = True
@@ -75,11 +74,11 @@ async def onReceptionFromML(ws, head, body):
     global frontWs, isMLWorking
     print("[MAIN < ML]", head)
 
+    # body is a list of dictionaries representing items (label, classID, box, confidence)
     if head == "image-items":
         isMLWorking = False
         if frontWs != None:
             await utils.wsSend(frontWs, "labels", body)
-        # TODO send get-info to info service with the name of the items
 
 # Called when receiving a message from the info module
 async def onReceptionFromInfo(ws, head, body):
@@ -87,11 +86,9 @@ async def onReceptionFromInfo(ws, head, body):
 
     if head == "db-ready":
         pass
-        # Test
-        #await utils.wsSend(ws, "get-info", ["Veau", "Lapin", "Farine"])
-    if head == "info":
-        # TODO do something with info
-        print(body)
+    elif head == "items-info":
+        # Relay the info to the front
+        await utils.wsSend(frontWs, "items-info", body)
 
 # Called when we have successfully connected to the machine learning module
 async def onConnectionML(websocket):
@@ -128,6 +125,8 @@ async def onReceptionFromFront(ws, head, body):
     print("[FRONT > MAIN]", head)
     if head == "handshake":
         frontWs = ws
+    elif head == "get-items-info":
+        await utils.wsSend(infoWs, "get-info", body)
 
 # Called when the connection with the front has been closed
 def onConnectionToFrontClosed(e=None):

@@ -6,11 +6,13 @@ import base64
 import videocaptureasync
 from time import time
 
+# Location of the camera
+#WEBCAM_LOCATION = "http://192.168.43.44:8080/video" # IP CAMERA
+WEBCAM_LOCATION = 0 # USB CAMERA
+
 ws = None
 started = False
 videoCapture = None
-# Location of the IP cam
-WEBCAM_URI = "http://192.168.43.127:8080/video"
 # Time before retrying to connect to the camera upon failure (seconds)
 CAMERA_CONNECTION_RETRY_TIME = 3.0
 # Maximum frames captured per second
@@ -67,7 +69,7 @@ async def onCameraStartupFailure():
 async def turnCameraOn(onSuccess=None, onFailure=None):
     global started, videoCapture
     try:
-        videoCapture = videocaptureasync.VideoCaptureAsync(WEBCAM_URI)
+        videoCapture = videocaptureasync.VideoCaptureAsync(WEBCAM_LOCATION)
         videoCapture.start()
         started = True
         if onSuccess is not None:

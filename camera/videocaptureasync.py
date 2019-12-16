@@ -29,6 +29,9 @@ class VideoCaptureAsync:
     def _captureLoop(self):
         while self.started:
             self.grabbed, self.frame = self.cap.read()
+            if not self.grabbed:
+                self.cap.release()
+                self.stop()
 
     def read(self):
         if self.frame is None:
